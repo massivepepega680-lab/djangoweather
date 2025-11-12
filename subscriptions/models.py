@@ -13,7 +13,6 @@ class Subscription(models.Model):
         SIX_HOURS = 6, '6 Hours'
         TWELVE_HOURS = 12, '12 Hours'
 
-    id = models.BigAutoField(primary_key=True)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
