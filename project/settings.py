@@ -30,21 +30,12 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG')
 
-if DEBUG:
-    ALLOWED_HOSTS = []
-else:
-    RAILWAY_HOSTNAME = os.getenv('RAILWAY_HOSTNAME')
-    if not RAILWAY_HOSTNAME:
-        raise ValueError('RAILWAY_HOSTNAME environment variable is not set.')
-    ALLOWED_HOSTS = [RAILWAY_HOSTNAME]
+ALLOWED_HOSTS_STR = os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost')
+ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_STR.split(',')]
 
-if DEBUG:
-    CSRF_TRUSTED_ORIGINS = []
-else:
-    RAILWAY_URL = os.getenv('RAILWAY_URL')
-    if not RAILWAY_URL:
-        raise ValueError('RAILWAY_URL environment variable is not set.')
-    CSRF_TRUSTED_ORIGINS = [RAILWAY_URL]
+# This does the same for CSRF origins.
+CSRF_TRUSTED_ORIGINS_STR = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in CSRF_TRUSTED_ORIGINS_STR.split(',') if origin.strip()]
 
 # Application definition
 
