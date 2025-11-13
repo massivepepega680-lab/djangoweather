@@ -74,7 +74,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'Task_17_Basic_Weather_Reminder.urls'
+ROOT_URLCONF = 'project.urls'
 
 TEMPLATES = [
     {
@@ -92,7 +92,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'Task_17_Basic_Weather_Reminder.wsgi.application'
+WSGI_APPLICATION = 'project.wsgi.application'
 
 
 # Database
