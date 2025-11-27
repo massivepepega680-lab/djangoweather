@@ -1,4 +1,5 @@
 import logging
+import os  # <-- ADD THIS IMPORT
 from datetime import timedelta
 from celery import shared_task
 from django.utils import timezone
@@ -7,40 +8,58 @@ from .services.email_sender import send_weather_email
 from .services.weather_client import WeatherClient
 from .services.webhook_sender import send_weather_webhook
 
-
 logger = logging.getLogger(__name__)
 
 @shared_task
 def process_and_send_notifications():
-    """The main periodic task, optimized to fetch weather for each city only once
-    Runs at the top of every hour to check which subscriptions are due
+    """The main periodic task, optimized to fetch weather for each city only once.
+    Adapts its scheduling logic based on environment variables for testing.
     """
     now = timezone.now()
-    current_hour = now.hour
 
-    logger.info(f'Running optimized notification task for hour: {current_hour}')
+    # --- START OF MODIFIED SECTION ---
+
+    # Check if we are in a custom testing schedule by looking for the env var.
+    is_testing_mode = os.getenv('CELERY_BEAT_MINUTE_SCHEDULE') is not None
+
+    logger.info(f"Running optimized notification task (Testing Mode: {is_testing_mode})")
 
     active_subscriptions = Subscription.objects.filter(is_active=True)
     if not active_subscriptions:
-        logger.info('No active subscriptions to process.')
-        return 'Task complete: No active subscriptions.'
+        logger.info("No active subscriptions to process.")
+        return "Task complete: No active subscriptions."
 
     due_subscriptions = []
     cities_to_fetch = set()
 
     for sub in active_subscriptions:
-        is_scheduled_hour = (current_hour % sub.notification_period) == 0
-        sent_this_hour = (
-                sub.last_notified_at is not None and
-                sub.last_notified_at >= now - timedelta(hours=1)
-        )
+        if is_testing_mode:
+            # --- TESTING LOGIC ---
+            # In testing mode, send if ~15 minutes have passed since the last notification.
+            # We use 14 minutes as a buffer to prevent race conditions with the scheduler.
+            is_due = (
+                sub.last_notified_at is None or
+                sub.last_notified_at <= now - timedelta(minutes=14)
+            )
+        else:
+            # --- PRODUCTION LOGIC ---
+            # In production, use the fixed hourly schedule.
+            current_hour = now.hour
+            is_scheduled_hour = (current_hour % sub.notification_period) == 0
+            sent_this_hour = (
+                    sub.last_notified_at is not None and
+                    sub.last_not_at >= now - timedelta(hours=1)
+            )
+            is_due = is_scheduled_hour and not sent_this_hour
 
-        if is_scheduled_hour and not sent_this_hour:
+        if is_due:
             due_subscriptions.append(sub)
             cities_to_fetch.add(sub.city)
 
+    # --- END OF MODIFIED SECTION ---
+
     if not due_subscriptions:
-        logger.info('No subscriptions are due for notification this hour.')
+        logger.info('No subscriptions are due for notification at this time.')
         return 'Task complete: No due subscriptions.'
 
     logger.info(f'Found {len(due_subscriptions)} due subscriptions for {len(cities_to_fetch)} unique cities.')
@@ -69,7 +88,7 @@ def process_and_send_notifications():
         else:
             logger.warning(f"Skipping distribution for '{sub.city}' (ID: {sub.id}): No weather data was fetched.")
 
-    final_message = (f'Task complete: Processed {len(due_subscriptions)} due subscriptions.'
+    final_message = (f'Task complete: Processed {len(due_subscriptions)} due subscriptions. '
                      f'Sent {notifications_sent} notifications.')
     logger.info(final_message)
     return final_message
