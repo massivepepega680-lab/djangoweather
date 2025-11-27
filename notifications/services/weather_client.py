@@ -1,6 +1,9 @@
+import logging
 import requests
 from django.conf import settings
 
+
+logger = logging.getLogger(__name__)
 
 class WeatherClient:
     BASE_URL = 'https://api.openweathermap.org/data/2.5/weather'
@@ -23,6 +26,6 @@ class WeatherClient:
             response = requests.get(self.BASE_URL, params=params)
             response.raise_for_status()
             return response.json()
-        except requests.exceptions.RequestException as e:
-            print(f'Error fetching weather for {city}: {e}')
+        except requests.exceptions.RequestException:
+            logger.warning(f'Error fetching weather for city: {city}', exc_info=True)
             return None
