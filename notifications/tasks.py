@@ -48,7 +48,7 @@ def process_and_send_notifications():
             is_scheduled_hour = (current_hour % sub.notification_period) == 0
             sent_this_hour = (
                     sub.last_notified_at is not None and
-                    sub.last_not_at >= now - timedelta(hours=1)
+                    sub.last_notified_at >= now - timedelta(hours=1)
             )
             is_due = is_scheduled_hour and not sent_this_hour
 
