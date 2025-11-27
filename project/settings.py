@@ -189,16 +189,27 @@ CELERY_BEAT_SCHEDULE = {
 }
 
 if DEBUG:
+    # In development, print emails to the console.
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
     DEFAULT_FROM_EMAIL = 'noreply@weather-reminder.com'
 else:
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = os.getenv('EMAIL_HOST')
-    EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-    EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
-    EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
+    # In production, use the django-sendgrid-v5 backend.
+    EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
+
+    # Get the SendGrid API key from the environment variable.
+    # We are reusing 'EMAIL_HOST_PASSWORD' which you already have set up.
+    SENDGRID_API_KEY = os.getenv('EMAIL_HOST_PASSWORD')
+
+    # Get the default from email from the environment.
     DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
 
-    if not all([EMAIL_HOST, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, DEFAULT_FROM_EMAIL]):
-        raise ValueError("Email settings are not fully configured for production.")
+    # Optional: This will print the JSON payload sent to SendGrid to your
+    # Railway logs, which is excellent for debugging. You can remove it later.
+    SENDGRID_ECHO_TO_STDOUT = True
+
+    # The proxy settings you had are not needed for Railway.
+    # They are only for when your server needs to go through a specific
+    # outbound HTTP proxy to access the internet, which is not the case here.
+
+    if not all([SENDGRID_API_KEY, DEFAULT_FROM_EMAIL]):
+        raise ValueError("SendGrid email settings are not fully configured for production.")
