@@ -42,15 +42,19 @@ def process_and_send_notifications():
                 sub.last_notified_at <= now - timedelta(minutes=14)
             )
         else:
-            # --- PRODUCTION LOGIC ---
-            # In production, use the fixed hourly schedule.
+            # --- PRODUCTION LOGIC (Corrected) ---
             current_hour = now.hour
             is_scheduled_hour = (current_hour % sub.notification_period) == 0
-            sent_this_hour = (
-                    sub.last_notified_at is not None and
-                    sub.last_notified_at >= now - timedelta(hours=1)
-            )
-            is_due = is_scheduled_hour and not sent_this_hour
+
+            sent_since_last_run = False
+            if sub.last_notified_at:
+                # Check if a notification has been sent in the last 59 minutes.
+                # This is a simpler and more robust way to prevent duplicates
+                # and handle the off-by-one error.
+                if sub.last_notified_at > now - timedelta(minutes=59):
+                    sent_since_last_run = True
+
+            is_due = is_scheduled_hour and not sent_since_last_run
 
         if is_due:
             due_subscriptions.append(sub)

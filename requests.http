@@ -1,0 +1,123 @@
+### =======================================
+### USER AND AUTHENTICATION ENDPOINTS
+### =======================================
+
+### 1. Register a new user. This request should succeed only once.
+POST http://127.0.0.1:8000/api/users/register/
+Content-Type: application/json
+
+{
+  "email": "pycharm-tester1@example.com",
+  "password": "supersecretpassword123"
+}
+
+
+###
+
+### 2. Authenticate and get tokens.
+POST http://127.0.0.1:8000/api/users/token/
+Content-Type: application/json
+
+{
+  "email": "pycharm-tester1@example.com",
+  "password": "supersecretpassword123"
+}
+
+> {%
+    client.global.set("auth_token", response.body.access);
+    client.global.set("refresh_token", response.body.refresh);
+%}
+
+### =======================================
+### SUBSCRIPTION ENDPOINTS (Requires Auth)
+### =======================================
+
+### 3. Create a new subscription (as the authenticated user).
+POST http://127.0.0.1:8000/api/subscriptions/
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "city": "Tokyo",
+  "notification_period": 12,
+  "notification_method": "email"
+}
+
+###
+
+### 4. Create another subscription (this time a webhook).
+POST http://127.0.0.1:8000/api/subscriptions/
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "city": "Berlin",
+  "notification_period": 3,
+  "notification_method": "webhook",
+  "webhook_url": "https://my-service.com/hooks/12345"
+}
+
+###
+
+### 5. Get a list of all subscriptions for the logged-in user.
+GET http://127.0.0.1:8000/api/subscriptions/
+Authorization: Bearer {{auth_token}}
+
+###
+
+### 6. Get the details of a SINGLE subscription.
+# IMPORTANT: You must change the '1' to the actual ID of a
+# subscription you created. Check the output from step #3 or #5.
+GET http://127.0.0.1:8000/api/subscriptions/1/
+Authorization: Bearer {{auth_token}}
+
+###
+
+### 7. Update a subscription (using PUT for a full update).
+# Again, change '1' to a real ID.
+PUT http://127.0.0.1:8000/api/subscriptions/1/
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "city": "Tokyo",
+  "notification_period": 6,
+  "notification_method": "email"
+}
+
+###
+
+### 8. Partially update a subscription (using PATCH).
+# Change '2' to a real ID. Notice we are only sending one field.
+PATCH http://127.0.0.1:8000/api/subscriptions/2/
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "is_active": false
+}
+
+###
+
+### 9. Delete a subscription.
+# Change '1' to a real ID.
+DELETE http://127.0.0.1:8000/api/subscriptions/1/
+Authorization: Bearer {{auth_token}}
+
+
+###
+
+
+### 10. Refresh the access token using the refresh token.
+# This simulates what a client app does when the access token expires.
+POST http://127.0.0.1:8000/api/users/token/refresh/
+Content-Type: application/json
+
+{
+  "refresh": "{{refresh_token}}"
+}
+
+> {%
+    // Save the NEW access token over the old one.
+    client.global.set("auth_token", response.body.access);
+%}
